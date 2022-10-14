@@ -1,25 +1,22 @@
-# 简介
-利用空闲资产，赚钱收益
 
-中心交易所借贷，面临黑客攻击，携款跑路，导致你的账号资金都是虚拟的，无法在链上使用，同时个人进行借贷需要管理各种条款和投机的风险；去中心化的借贷平台Compound
-简化了借贷流程，同时避免了用户管理各种条款、投机的风。
+# 引言
 
+当前中心交易所借贷，面临黑客攻击，携款跑路，导致你的账号资金都是虚拟的，无法在链上使用，同时个人进行借贷需要管理各种条款和投机的风险；去中心化的借贷平台Compound
+简化了借贷流程，同时避免了用户管理各种条款、投机的风险，主要有一个优势：
 
 1. 不需要填写任何订单及线下操作就可以完成借贷；
 2. 用户可以使用他的现有投资组合，借出ETH进行项目的ICO;
 3. 交易者，可以借出代币，并在交易所抛售，进而获利（做空）；
 
+在Compound上，用户利用空闲资产，赚钱收益，同时为借贷需求方，提供支持。
 
-# tip
-用户可以使用抵押贷出ETH，又可以使用ETH，在Uniswap，swap其他代币，再在Compound上进行抵押，获取ETH，完成加杠杆操作；
+
 
 # 借贷协议
 
 提供者提供资金，将会放入资产总池，同时会获得相应的ERC20 cToken；cToken可以作为收益的分配和提供者的体现依据；
 
 借贷者抵押需要的资产进行借贷；高流动性，高价值的借贷抵押利率高，反之，贷抵押利率；
-
-
 
 借贷方，可以借出不超过其资产的贷款，此举为了降低协议面临的风险；
 
@@ -32,9 +29,6 @@ liquidation discount：（清算折扣）
 任何EOA账户都可以发起清算；
 
 close factor：超额借贷时，需要偿还的贷款因子；
-
-
-
 
 ## Interest Rate Model
 
@@ -53,10 +47,10 @@ Borrowing Interest Rate·a = 2.5% + U·a * 20%
 协议不通过流动性保证，只通过借贷利率来保证，在极端情况下，高额的借贷利率将会激励提供现金供应，同时抑制借贷需求；
 
 
-# 实现
+## 协议实现
 所有借贷的实现都是基于ERC20的cToken合约
 
-## cToken Contracts
+### cToken Contracts
 用户提供的任何资产价格将会转换为基于ERC20的cToken；用户可以使用mint(uint
 amountUnderlying) ，通过现金资产到市场获取cToken，使用 cToken的redeem(uint amount)赎回操作，获取自己的现金资产；
 
@@ -77,7 +71,7 @@ exchangeRate = （underlyingBalance +totalBorrowBalance·a − reserves·a）/cT
 
 
 
-## Interest Rate Mechanics 
+### Interest Rate Mechanics 
 利率随着借贷需求的变化而变化，
 Interest Rate Index将会管理基于时间历史的利率，每次计算利率，将会影响资产的供应，借贷，偿还，赎回和清算；
 
@@ -98,27 +92,68 @@ reserves.a = reserves.a,(n−1)+ totalBorrowBalance.a,(n−1) *(r * t * reserveF
 reserveFactor:储备系数
 
 
-## Borrower Dynamics
+### Borrower Dynamics
 随着利率的变化，用户的可借贷金额随之变化，同时以tuple <uint256 balance, uint256 interestIndex> 进行维护；
 
 
-## Borrowing
+### Borrowing
 用户借贷将会检查用户的抵押物是否充足，另外放贷后，将会触发市场利率的更新；同时用户可以在任何适合偿还贷款；
 
 
-## Liquidation
+### Liquidation
 当抵押品市场价值降低，或者用户的借贷超额，将会触发清算，清算者将会获取清算借贷额度相应的cToken；
 
 
-## Price Feeds
+### Price Feeds
+Compound协议将会代理委员会使用Price Oracle维护每个资产的汇率
 
+### Comptroller
+Compound协议针对特定的资产默认不支持，只有白名单中的才支持， 用户可以使用管理功能supportMarket(address market,address interest rate model)，添加
+资产到市场，为了能够借出资产，资产必须从Price Oracle可以拉出对应有效价格；同时为了能够抵押，必须有一个有效的价格和抵押因子；
 
-## Comptroller
-
+每个方法将会通过策略层Comptroller校验，Comptroller在用户的每个动作之前，将会校验抵押品和流动性
 ## 3.7 Governance
+Compound将会先使用集中化的管理，控制利率的模型等，在将来将会交给社区和权益股东；管理员可以拥有一下权利：
+1. list新的cToken市场；
+2. 更新每个市场的利率模型；
+3. 更新Oracle地址；
+4. 从储备的cToken体现；
+5. 任命新的admin，比如社区控制的DAO；
+
+## Summary
+
+* Compound提供了ETH资产的市场化流动；
+* 每个市场的利率有供需关系决定，借出资产，利率上升，赎回资产，利率上升，激励额外的流动性；
+* 用户可以在依赖于中心化组织的情况，从市场上获取收益；
+* 用户可以使用从Compound中借出来的资产进行使用，售卖或者再借贷。
 
 
-# Summary
+
+
+# 总结
+Compound基于ERC20的cToken为用户提供的去中心化的借贷及存款，主要包括提供资产，借贷，偿还，赎回，清算关键操作。
+
+提供者提供资金，将会放入资产总池，同时会获得相应的ERC20 cToken；cToken可以作为收益的分配和提供者的体现依据；
+
+用户借贷将会检查用户的抵押物是否充足，另外放贷后，将会触发市场利率的更新；同时用户可以在任何适合偿还贷款；
+
+随着利率的变化，用户的可借贷金额随之变化，同时以tuple <uint256 balance, uint256 interestIndex> 进行维护；
+
+当抵押品市场价值降低，或者用户的借贷超额，将会触发清算，清算者将会以市场的liquidation discount（清算折扣）进行清算，获取清算借贷额度相应的cToken；
+以降低用户和协议的风险，任何EOA账户都可以发起清算；
+
+
+Compound协议针对特定的资产默认不支持，只有白名单中的才支持， 用户可以使用管理功能supportMarket(address market,address interest rate model)，添加
+资产到市场，为了能够借出资产，资产必须从Price Oracle可以拉出对应有效价格；同时为了能够抵押，必须有一个有效的价格和抵押因子；
+
+Compound的作用及关键特性、机制：
+
+* Compound提供了ETH资产的市场化流动；
+* 每个市场的利率有供需关系决定，借出资产，利率上升，赎回资产，利率上升，激励额外的流动性；
+* 用户可以在依赖于中心化组织的情况，从市场上获取收益；
+* 用户可以使用从Compound中借出来的资产进行使用，售卖或者再借贷。
+
+
 
 
 
