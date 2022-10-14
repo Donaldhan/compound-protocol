@@ -130,6 +130,11 @@ Compound将会先使用集中化的管理，控制利率的模型等，在将来
 
 
 
+## TOOD
+1. 协议 https://github.com/compound-finance/compound-protocol/blob/master/docs/CompoundProtocol.pdf
+2. 合约
+
+
 # 总结
 Compound基于ERC20的cToken为用户提供的去中心化的借贷及存款，主要包括提供资产，借贷，偿还，赎回，清算关键操作。
 
