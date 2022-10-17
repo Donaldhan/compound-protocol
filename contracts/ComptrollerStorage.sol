@@ -68,7 +68,7 @@ contract ComptrollerV2Storage is ComptrollerV1Storage {
         //  Must be between 0 and 1, and stored as a mantissa.
         uint collateralFactorMantissa;
 
-        // Per-market mapping of "accounts in this asset" 预热的资产账户地址
+        // Per-market mapping of "accounts in this asset" 资产账户地址
         mapping(address => bool) accountMembership;
 
         // Whether or not this market receives COMP 市场是否接受COMP
@@ -125,13 +125,13 @@ contract ComptrollerV3Storage is ComptrollerV2Storage {
     /// @notice The COMP market borrow state for each market 每个市场的COMP借贷状态
     mapping(address => CompMarketState) public compBorrowState;
 
-    /// @notice The COMP borrow index for each market for each supplier as of the last time they accrued COMP 每个市场的COMP每次供应对应的借贷索引
+    /// @notice The COMP borrow index for each market for each supplier as of the last time they accrued COMP 每个市场的COMP每个供应对应的借贷索引
     mapping(address => mapping(address => uint)) public compSupplierIndex;
 
-    /// @notice The COMP borrow index for each market for each borrower as of the last time they accrued COMP  每个市场的COMP每次借贷对应的借贷索引
+    /// @notice The COMP borrow index for each market for each borrower as of the last time they accrued COMP  每个市场的COMP每个借贷对应的借贷索引
     mapping(address => mapping(address => uint)) public compBorrowerIndex;
 
-    /// @notice The COMP accrued but not yet transferred to each user 还没有转已给COMP的累计数量
+    /// @notice The COMP accrued but not yet transferred to each user 还没有转用户的COMP累计数量
     mapping(address => uint) public compAccrued;
 }
 
