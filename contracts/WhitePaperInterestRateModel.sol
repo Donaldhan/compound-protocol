@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import "./InterestRateModel.sol";
 
 /**
-  * @title Compound's WhitePaperInterestRateModel Contract
+  * @title Compound's WhitePaperInterestRateModel Contract 白皮书利率模型
   * @author Compound
   * @notice The parameterized model described in section 2.4 of the original Compound Protocol whitepaper
   */

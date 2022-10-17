@@ -3,6 +3,7 @@ pragma solidity ^0.8.10;
 
 import "./CToken.sol";
 
+//类Comp
 interface CompLike {
     function delegate(address delegatee) external;
 }
@@ -15,7 +16,7 @@ interface CompLike {
 contract CErc20 is CToken, CErc20Interface {
     /**
      * @notice Initialize the new money market
-     * @param underlying_ The address of the underlying asset
+     * @param underlying_ The address of the underlying asset 底层资产
      * @param comptroller_ The address of the Comptroller
      * @param interestRateModel_ The address of the interest rate model
      * @param initialExchangeRateMantissa_ The initial exchange rate, scaled by 1e18
@@ -33,7 +34,7 @@ contract CErc20 is CToken, CErc20Interface {
         // CToken initialize does the bulk of the work
         super.initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_);
 
-        // Set underlying and sanity check it
+        // Set underlying and sanity check it 底层资产检查
         underlying = underlying_;
         EIP20Interface(underlying).totalSupply();
     }
@@ -119,6 +120,7 @@ contract CErc20 is CToken, CErc20Interface {
 
     /**
      * @notice A public function to sweep accidental ERC-20 transfers to this contract. Tokens are sent to admin (timelock)
+     * 将发送的token全部转给管理员
      * @param token The address of the ERC-20 token to sweep
      */
     function sweepToken(EIP20NonStandardInterface token) override external {
@@ -140,7 +142,7 @@ contract CErc20 is CToken, CErc20Interface {
     /*** Safe Token ***/
 
     /**
-     * @notice Gets balance of this contract in terms of the underlying
+     * @notice Gets balance of this contract in terms of the underlying底层资产余额
      * @dev This excludes the value of the current message, if any
      * @return The quantity of underlying tokens owned by this contract
      */
@@ -162,7 +164,9 @@ contract CErc20 is CToken, CErc20Interface {
         // Read from storage once
         address underlying_ = underlying;
         EIP20NonStandardInterface token = EIP20NonStandardInterface(underlying_);
+        //当前合约余额
         uint balanceBefore = EIP20Interface(underlying_).balanceOf(address(this));
+        //转账到当前余额
         token.transferFrom(from, address(this), amount);
 
         bool success;
@@ -181,7 +185,7 @@ contract CErc20 is CToken, CErc20Interface {
         }
         require(success, "TOKEN_TRANSFER_IN_FAILED");
 
-        // Calculate the amount that was *actually* transferred
+        // Calculate the amount that was *actually* transferred 计算实际转账金额
         uint balanceAfter = EIP20Interface(underlying_).balanceOf(address(this));
         return balanceAfter - balanceBefore;   // underflow already checked above, just subtract
     }
@@ -197,6 +201,7 @@ contract CErc20 is CToken, CErc20Interface {
      */
     function doTransferOut(address payable to, uint amount) virtual override internal {
         EIP20NonStandardInterface token = EIP20NonStandardInterface(underlying);
+        //转账to
         token.transfer(to, amount);
 
         bool success;
@@ -217,7 +222,7 @@ contract CErc20 is CToken, CErc20Interface {
     }
 
     /**
-    * @notice Admin call to delegate the votes of the COMP-like underlying
+    * @notice Admin call to delegate the votes of the COMP-like underlying 底层类COMP投票代理
     * @param compLikeDelegatee The address to delegate votes to
     * @dev CTokens whose underlying are not CompLike should revert here
     */

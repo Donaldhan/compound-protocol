@@ -509,18 +509,19 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         uint repayAmount) override external returns (uint) {
         // Shh - currently unused
         liquidator;
-
+        //确保借贷资产和抵押资产在市场中存在  
         if (!markets[cTokenBorrowed].isListed || !markets[cTokenCollateral].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
         }
+        //用户借贷金额  
+        uint borrowBalance = CToken(cTokenBorrowed).borrowBalanceStored(borrower); 
 
-        uint borrowBalance = CToken(cTokenBorrowed).borrowBalanceStored(borrower);
-
-        /* allow accounts to be liquidated if the market is deprecated */
+        /* allow accounts to be liquidated if the market is deprecated 确保借贷资产token没有废弃*/ 
         if (isDeprecated(CToken(cTokenBorrowed))) {
             require(borrowBalance >= repayAmount, "Can not repay more than the total borrow");
         } else {
             /* The borrower must have shortfall in order to be liquidatable */
+            //获取账户资产流动
             (Error err, , uint shortfall) = getAccountLiquidityInternal(borrower);
             if (err != Error.NO_ERROR) {
                 return uint(err);
@@ -531,8 +532,9 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
             }
 
             /* The liquidator may not repay more than what is allowed by the closeFactor */
+            //可清算贷款
             uint maxClose = mul_ScalarTruncate(Exp({mantissa: closeFactorMantissa}), borrowBalance);
-            if (repayAmount > maxClose) {
+            if (repayAmount > maxClose) { //超额偿还
                 return uint(Error.TOO_MUCH_REPAY);
             }
         }
@@ -582,7 +584,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         address liquidator,
         address borrower,
         uint seizeTokens) override external returns (uint) {
-        // Pausing is a very serious situation - we revert to sound the alarms
+        // Pausing is a very serious situation - we revert to sound the alarms ，确保没有暂停抵押扣押操作
         require(!seizeGuardianPaused, "seize is paused");
 
         // Shh - currently unused
@@ -591,13 +593,15 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         if (!markets[cTokenCollateral].isListed || !markets[cTokenBorrowed].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
         }
-
+        //两个资产token的控制器不一致 
         if (CToken(cTokenCollateral).comptroller() != CToken(cTokenBorrowed).comptroller()) {
             return uint(Error.COMPTROLLER_MISMATCH);
         }
 
         // Keep the flywheel moving
+        //更新抵押token供应索引
         updateCompSupplyIndex(cTokenCollateral);
+        //更新借贷者和清算者的comp
         distributeSupplierComp(cTokenCollateral, borrower);
         distributeSupplierComp(cTokenCollateral, liquidator);
 
@@ -632,26 +636,29 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Checks if the account should be allowed to transfer tokens in the given market
+     * @notice Checks if the account should be allowed to transfer tokens in the given market 转移
      * @param cToken The market to verify the transfer against
-     * @param src The account which sources the tokens
+     * @param src The account which sources the tokens 
      * @param dst The account which receives the tokens
-     * @param transferTokens The number of cTokens to transfer
+     * @param transferTokens The number of cTokens to transfer 转移的cToken数量
      * @return 0 if the transfer is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
     function transferAllowed(address cToken, address src, address dst, uint transferTokens) override external returns (uint) {
-        // Pausing is a very serious situation - we revert to sound the alarms
+        // Pausing is a very serious situation - we revert to sound the alarms 是否允许转移
         require(!transferGuardianPaused, "transfer is paused");
 
         // Currently the only consideration is whether or not
         //  the src is allowed to redeem this many tokens
+        //是否允许赎回
         uint allowed = redeemAllowedInternal(cToken, src, transferTokens);
         if (allowed != uint(Error.NO_ERROR)) {
             return allowed;
         }
 
         // Keep the flywheel moving
+        //更新cToken供应者索引
         updateCompSupplyIndex(cToken);
+        //根据供应索引，分配COMP
         distributeSupplierComp(cToken, src);
         distributeSupplierComp(cToken, dst);
 
@@ -659,7 +666,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Validates transfer and reverts on rejection. May emit logs.
+     * @notice Validates transfer and reverts on rejection. May emit logs. 转移校验
      * @param cToken Asset being transferred
      * @param src The account which sources the tokens
      * @param dst The account which receives the tokens
@@ -814,16 +821,19 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
      * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
+     * 计算抵押
      * @dev Used in liquidation (called in cToken.liquidateBorrowFresh)
-     * @param cTokenBorrowed The address of the borrowed cToken
-     * @param cTokenCollateral The address of the collateral cToken
-     * @param actualRepayAmount The amount of cTokenBorrowed underlying to convert into cTokenCollateral tokens
+     * @param cTokenBorrowed The address of the borrowed cToken 借贷资产
+     * @param cTokenCollateral The address of the collateral cToken 抵押资产
+     * @param actualRepayAmount The amount of cTokenBorrowed underlying to convert into cTokenCollateral tokens 实现偿还的底层资产
      * @return (errorCode, number of cTokenCollateral tokens to be seized in a liquidation)
      */
     function liquidateCalculateSeizeTokens(address cTokenBorrowed, address cTokenCollateral, uint actualRepayAmount) override external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
+        //获取借贷，抵押价格
         uint priceBorrowedMantissa = oracle.getUnderlyingPrice(CToken(cTokenBorrowed));
         uint priceCollateralMantissa = oracle.getUnderlyingPrice(CToken(cTokenCollateral));
+        //确保资产价格正常
         if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
         }
@@ -834,6 +844,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
          *  seizeTokens = seizeAmount / exchangeRate
          *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
          */
+         //汇率
         uint exchangeRateMantissa = CToken(cTokenCollateral).exchangeRateStored(); // Note: reverts on error
         uint seizeTokens;
         Exp memory numerator;
@@ -852,7 +863,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     /*** Admin Functions ***/
 
     /**
-      * @notice Sets a new price oracle for the comptroller
+      * @notice Sets a new price oracle for the comptroller 设置价格oracle
       * @dev Admin function to set a new price oracle
       * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
       */
@@ -875,7 +886,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-      * @notice Sets the closeFactor used when liquidating borrows
+      * @notice Sets the closeFactor used when liquidating borrows 设置关闭因子，清算时，最大偿还金额
       * @dev Admin function to set closeFactor
       * @param newCloseFactorMantissa New close factor, scaled by 1e18
       * @return uint 0=success, otherwise a failure
@@ -892,7 +903,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-      * @notice Sets the collateralFactor for a market
+      * @notice Sets the collateralFactor for a market 设置cToken的抵押因子
       * @dev Admin function to set per-market collateralFactor
       * @param cToken The market to set the factor on
       * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
@@ -904,7 +915,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_COLLATERAL_FACTOR_OWNER_CHECK);
         }
 
-        // Verify market is listed
+        // Verify market is listed 检查市场资产
         Market storage market = markets[address(cToken)];
         if (!market.isListed) {
             return fail(Error.MARKET_NOT_LISTED, FailureInfo.SET_COLLATERAL_FACTOR_NO_EXISTS);
@@ -914,11 +925,11 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
         // Check collateral factor <= 0.9
         Exp memory highLimit = Exp({mantissa: collateralFactorMaxMantissa});
-        if (lessThanExp(highLimit, newCollateralFactorExp)) {
+        if (lessThanExp(highLimit, newCollateralFactorExp)) {//关闭因子超限
             return fail(Error.INVALID_COLLATERAL_FACTOR, FailureInfo.SET_COLLATERAL_FACTOR_VALIDATION);
         }
 
-        // If collateral factor != 0, fail if price == 0
+        // If collateral factor != 0, fail if price == 0 确保底层预言价格可用
         if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(cToken) == 0) {
             return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE);
         }
@@ -934,7 +945,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-      * @notice Sets liquidationIncentive
+      * @notice Sets liquidationIncentive 设置清算激励因子
       * @dev Admin function to set liquidationIncentive
       * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
       * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
@@ -958,7 +969,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-      * @notice Add the market to the markets mapping and set it as listed
+      * @notice Add the market to the markets mapping and set it as listed 添加资产到市场
       * @dev Admin function to set isListed and add support for the market
       * @param cToken The address of the market (token) to list
       * @return uint 0=success, otherwise a failure. (See enum Error for details)
@@ -979,7 +990,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         newMarket.isListed = true;
         newMarket.isComped = false;
         newMarket.collateralFactorMantissa = 0;
-
+        //添加资产到市场 
         _addMarketInternal(address(cToken));
         _initializeMarket(address(cToken));
 
@@ -987,14 +998,14 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
         return uint(Error.NO_ERROR);
     }
-
+    ///添加资产到市场 
     function _addMarketInternal(address cToken) internal {
         for (uint i = 0; i < allMarkets.length; i ++) {
             require(allMarkets[i] != CToken(cToken), "market already added");
         }
         allMarkets.push(CToken(cToken));
     }
-
+    ///初始化市场资产
     function _initializeMarket(address cToken) internal {
         uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
 
@@ -1023,11 +1034,13 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
       * @notice Set the given borrow caps for the given cToken markets. Borrowing that brings total borrows to or above borrow cap will revert.
+      * 设置市场资产的借贷上限
       * @dev Admin or borrowCapGuardian function to set the borrow caps. A borrow cap of 0 corresponds to unlimited borrowing.
       * @param cTokens The addresses of the markets (tokens) to change the borrow caps for
       * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to unlimited borrowing.
       */
     function _setMarketBorrowCaps(CToken[] calldata cTokens, uint[] calldata newBorrowCaps) external {
+        //确保为管理员，或者借贷上限监管账户
     	require(msg.sender == admin || msg.sender == borrowCapGuardian, "only admin or borrow cap guardian can set borrow caps");
 
         uint numMarkets = cTokens.length;
@@ -1042,7 +1055,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Admin function to change the Borrow Cap Guardian
+     * @notice Admin function to change the Borrow Cap Guardian 设置借贷上限监管账户
      * @param newBorrowCapGuardian The address of the new Borrow Cap Guardian
      */
     function _setBorrowCapGuardian(address newBorrowCapGuardian) external {
@@ -1059,7 +1072,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Admin function to change the Pause Guardian
+     * @notice Admin function to change the Pause Guardian 设置暂定监管账户
      * @param newPauseGuardian The address of the new Pause Guardian
      * @return uint 0=success, otherwise a failure. (See enum Error for details)
      */
@@ -1079,7 +1092,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
         return uint(Error.NO_ERROR);
     }
-
+    ///暂停mint，借贷，转账，扣押，清算
     function _setMintPaused(CToken cToken, bool state) public returns (bool) {
         require(markets[address(cToken)].isListed, "cannot pause a market that is not listed");
         require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can pause");
@@ -1117,13 +1130,13 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         emit ActionPaused("Seize", state);
         return state;
     }
-
+    ///接受控制者实现
     function _become(Unitroller unitroller) public {
         require(msg.sender == unitroller.admin(), "only unitroller admin can change brains");
         require(unitroller._acceptImplementation() == 0, "change not authorized");
     }
 
-    /// @notice Delete this function after proposal 65 is executed
+    /// @notice Delete this function after proposal 65 is executed 提议64后已经删除
     function fixBadAccruals(address[] calldata affectedUsers, uint[] calldata amounts) external {
         require(msg.sender == admin, "Only admin can call this function"); // Only the timelock can call this function
         require(!proposal65FixExecuted, "Already executed this one-off function"); // Require that this function is only called once
@@ -1172,19 +1185,19 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Checks caller is admin, or this contract is becoming the new implementation
+     * @notice Checks caller is admin, or this contract is becoming the new implementation 是否初始化管理或者合约已经变成新的实现
      */
     function adminOrInitializing() internal view returns (bool) {
         return msg.sender == admin || msg.sender == comptrollerImplementation;
     }
 
-    /*** Comp Distribution ***/
+    /*** Comp Distribution  Comp 分配***/
 
     /**
-     * @notice Set COMP speed for a single market
+     * @notice Set COMP speed for a single market 设置单个COMP速率
      * @param cToken The market whose COMP speed to update
-     * @param supplySpeed New supply-side COMP speed for market
-     * @param borrowSpeed New borrow-side COMP speed for market
+     * @param supplySpeed New supply-side COMP speed for market 供应速率
+     * @param borrowSpeed New borrow-side COMP speed for market 借贷速率
      */
     function setCompSpeedInternal(CToken cToken, uint supplySpeed, uint borrowSpeed) internal {
         Market storage market = markets[address(cToken)];
@@ -1194,6 +1207,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
             // Supply speed updated so let's update supply state to ensure that
             //  1. COMP accrued properly for the old speed, and
             //  2. COMP accrued at the new speed starts after this block.
+            //更新cToken的Comp供应索引
             updateCompSupplyIndex(address(cToken));
 
             // Update speed and emit event
@@ -1201,7 +1215,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
             emit CompSupplySpeedUpdated(cToken, supplySpeed);
         }
 
-        if (compBorrowSpeeds[address(cToken)] != borrowSpeed) {
+        if (compBorrowSpeeds[address(cToken)] != borrowSpeed) { //更新借贷Comp速率
             // Borrow speed updated so let's update borrow state to ensure that
             //  1. COMP accrued properly for the old speed, and
             //  2. COMP accrued at the new speed starts after this block.
@@ -1264,8 +1278,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     /**
      * @notice Calculate COMP accrued by a supplier and possibly transfer it to them
      * 分配供应者COMP
-     * @param cToken The market in which the supplier is interacting
-     * @param supplier The address of the supplier to distribute COMP to
+     * @param cToken The market in which the supplier is interacting 交互供应token
+     * @param supplier The address of the supplier to distribute COMP to 供应者
      */
     function distributeSupplierComp(address cToken, address supplier) internal {
         // TODO: Don't distribute supplier COMP if the user is not in the supplier market. 用户不是供应者，则不会分配Comp
@@ -1345,6 +1359,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
      * @notice Calculate additional accrued COMP for a contributor since last accrual
+     * 利率更新后，计算额外的COMP利息给贡献者
      * @param contributor The address to calculate contributor rewards for
      */
     function updateContributorRewards(address contributor) public {
@@ -1361,7 +1376,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Claim all the comp accrued by holder in all markets
+     * @notice Claim all the comp accrued by holder in all markets 声明市场参与者的所有资产的COMP累计
      * @param holder The address to claim COMP for
      */
     function claimComp(address holder) public {
@@ -1380,7 +1395,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Claim all comp accrued by the holders
+     * @notice Claim all comp accrued by the holders  声明市场参与者的所有资产的COMP累计
      * @param holders The addresses to claim COMP for
      * @param cTokens The list of markets to claim COMP in
      * @param borrowers Whether or not to claim COMP earned by borrowing
@@ -1410,7 +1425,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Transfer COMP to the user
+     * @notice Transfer COMP to the user 转移Comp给用户
      * @dev Note: If there is not enough COMP, we do not perform the transfer all.
      * @param user The address of the user to transfer COMP to
      * @param amount The amount of COMP to (possibly) transfer
@@ -1419,6 +1434,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     function grantCompInternal(address user, uint amount) internal returns (uint) {
         Comp comp = Comp(getCompAddress());
         uint compRemaining = comp.balanceOf(address(this));
+        //确保comp充足
         if (amount > 0 && amount <= compRemaining) {
             comp.transfer(user, amount);
             return 0;
@@ -1429,7 +1445,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     /*** Comp Distribution Admin ***/
 
     /**
-     * @notice Transfer COMP to the recipient
+     * @notice Transfer COMP to the recipient 转账COMP给接收者
      * @dev Note: If there is not enough COMP, we do not perform the transfer all.
      * @param recipient The address of the recipient to transfer COMP to
      * @param amount The amount of COMP to (possibly) transfer
@@ -1442,10 +1458,10 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Set COMP borrow and supply speeds for the specified markets.
+     * @notice Set COMP borrow and supply speeds for the specified markets. 设置市场的COMP的借贷供应速率
      * @param cTokens The markets whose COMP speed to update.
-     * @param supplySpeeds New supply-side COMP speed for the corresponding market.
-     * @param borrowSpeeds New borrow-side COMP speed for the corresponding market.
+     * @param supplySpeeds New supply-side COMP speed for the corresponding market. 供应边际速率
+     * @param borrowSpeeds New borrow-side COMP speed for the corresponding market. 借贷边际速率
      */
     function _setCompSpeeds(CToken[] memory cTokens, uint[] memory supplySpeeds, uint[] memory borrowSpeeds) public {
         require(adminOrInitializing(), "only admin can set comp speed");
@@ -1459,7 +1475,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Set COMP speed for a single contributor
+     * @notice Set COMP speed for a single contributor 设置单个供应者Comp速率
      * @param contributor The contributor whose COMP speed to update
      * @param compSpeed New COMP speed for contributor
      */
@@ -1506,7 +1522,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Return the address of the COMP token
+     * @notice Return the address of the COMP token 返回CompToken的地址
      * @return The address of COMP
      */
     function getCompAddress() virtual public view returns (address) {

@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import "./CToken.sol";
 
 /**
- * @title Compound's CEther Contract
+ * @title Compound's CEther Contract ETH的的包装合约
  * @notice CToken which wraps Ether
  * @author Compound
  */
@@ -124,7 +124,7 @@ contract CEther is CToken {
     /*** Safe Token ***/
 
     /**
-     * @notice Gets balance of this contract in terms of Ether, before this message
+     * @notice Gets balance of this contract in terms of Ether, before this message 当前合约的eth余额
      * @dev This excludes the value of the current message, if any
      * @return The quantity of Ether owned by this contract
      */
@@ -144,7 +144,9 @@ contract CEther is CToken {
         require(msg.value == amount, "value mismatch");
         return amount;
     }
-
+    /**
+     * 转账eth给用户
+     */
     function doTransferOut(address payable to, uint amount) virtual override internal {
         /* Send the Ether, with minimal gas and revert on failure */
         to.transfer(amount);

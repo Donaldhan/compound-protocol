@@ -89,7 +89,7 @@ contract ComptrollerV2Storage is ComptrollerV1Storage {
      * 此操作，允许用户使用未暂停的资产
      *  Liquidation / seizing / transfer can only be paused globally, not by market.
      */
-    address public pauseGuardian;
+    address public pauseGuardian;//暂停监管账号
     bool public _mintGuardianPaused; //mint操作暂停
     bool public _borrowGuardianPaused; //借贷暂停标志
     bool public transferGuardianPaused;//转移暂停标志
