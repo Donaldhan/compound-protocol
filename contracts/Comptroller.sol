@@ -14,22 +14,22 @@ import "./Governance/Comp.sol";
  * @author Compound
  */
 contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerErrorReporter, ExponentialNoError {
-    /// @notice Emitted when an admin supports a market
+    /// @notice Emitted when an admin supports a market 添加资本市场事件
     event MarketListed(CToken cToken);
 
-    /// @notice Emitted when an account enters a market
+    /// @notice Emitted when an account enters a market 账户进入市场事件
     event MarketEntered(CToken cToken, address account);
 
-    /// @notice Emitted when an account exits a market
+    /// @notice Emitted when an account exits a market 账户退出市场事件
     event MarketExited(CToken cToken, address account);
 
-    /// @notice Emitted when close factor is changed by admin
+    /// @notice Emitted when close factor is changed by admin 账户清算关闭因子
     event NewCloseFactor(uint oldCloseFactorMantissa, uint newCloseFactorMantissa);
 
-    /// @notice Emitted when a collateral factor is changed by admin
+    /// @notice Emitted when a collateral factor is changed by admin 抵押因子变更
     event NewCollateralFactor(CToken cToken, uint oldCollateralFactorMantissa, uint newCollateralFactorMantissa);
 
-    /// @notice Emitted when liquidation incentive is changed by admin
+    /// @notice Emitted when liquidation incentive is changed by admin 
     event NewLiquidationIncentive(uint oldLiquidationIncentiveMantissa, uint newLiquidationIncentiveMantissa);
 
     /// @notice Emitted when price oracle is changed

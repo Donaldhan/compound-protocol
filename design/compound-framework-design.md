@@ -129,6 +129,12 @@ Compound将会先使用集中化的管理，控制利率的模型等，在将来
 
 
 
+# 合约
+InterestRateModel（利率模型）：提供借贷率和供应率的计算；
+CToken：提供挖取、借贷，偿还，赎回，清算等核心操作， 每个核心操作发生时，都会重新计算利率；计算利率时，并借贷产生的利率会算到新的借贷总额和储备新上；
+清算时，会将借贷的抵押资产，扣押一部分给清算者，一部分作为新的储备金，同时CToken总供应量减少抵押扣留的Token数量。除核心操作之外，提供利率模型的设置，
+管理变更, 控制器设置，储备因子的设置，管理员增加减少现金储备等管理操作；
+PriceOracle（价格预言机）：提供资产价格的查询
 
 ## TOOD
 1. 协议 https://github.com/compound-finance/compound-protocol/blob/master/docs/CompoundProtocol.pdf
@@ -179,4 +185,5 @@ Compound的作用及关键特性、机制：
 [剖析DeFi借贷产品之Compound：合约篇](https://juejin.cn/post/6974005248947929124)     
 [剖析DeFi借贷产品之Compound：Subgraph篇](https://learnblockchain.cn/article/2632)  
 [剖析DeFi借贷产品之Compound：清算篇](https://mirror.xyz/0x546086AfA3D285aCD2c84783c2dCf8F2C23b6433/qdqHZGPih7gXdderdPtZaqloeedTVpgCUdpgUGMGGTk)      
-[剖析DeFi借贷产品之Compound：延伸篇](https://mirror.xyz/0x546086AfA3D285aCD2c84783c2dCf8F2C23b6433/yYi562kzBNUSgcuZKbN0M_hGXtNpb_Su0X6kDuAC8kY)     
+[剖析DeFi借贷产品之Compound：延伸篇](https://mirror.xyz/0x546086AfA3D285aCD2c84783c2dCf8F2C23b6433/yYi562kzBNUSgcuZKbN0M_hGXtNpb_Su0X6kDuAC8kY)    
+[Compound III 上线，有哪些升级和改动？](https://foresightnews.pro/article/detail/12592)     

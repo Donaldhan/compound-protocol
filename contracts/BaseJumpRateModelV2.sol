@@ -49,16 +49,16 @@ abstract contract BaseJumpRateModelV2 is InterestRateModel {
      * @param multiplierPerYear The rate of increase in interest rate wrt utilization (scaled by BASE)
      * @param jumpMultiplierPerYear The multiplierPerBlock after hitting a specified utilization point
      * @param kink_ The utilization point at which the jump multiplier is applied
-     * @param owner_ The address of the owner, i.e. the Timelock contract (which has the ability to update parameters directly)
+     * @param owner_ The address of the owner, i.e. the Timelock contract (which has the ability to update parameters directly) 拥有者
      */
     constructor(uint baseRatePerYear, uint multiplierPerYear, uint jumpMultiplierPerYear, uint kink_, address owner_) internal {
         owner = owner_;
-
+        //更新利率模型参数
         updateJumpRateModelInternal(baseRatePerYear,  multiplierPerYear, jumpMultiplierPerYear, kink_);
     }
 
     /**
-     * @notice Update the parameters of the interest rate model (only callable by owner, i.e. Timelock)
+     * @notice Update the parameters of the interest rate model (only callable by owner, i.e. Timelock) 更新利率模型参数
      * @param baseRatePerYear The approximate target base APR, as a mantissa (scaled by BASE)
      * @param multiplierPerYear The rate of increase in interest rate wrt utilization (scaled by BASE)
      * @param jumpMultiplierPerYear The multiplierPerBlock after hitting a specified utilization point
@@ -71,7 +71,7 @@ abstract contract BaseJumpRateModelV2 is InterestRateModel {
     }
 
     /**
-     * @notice Calculates the utilization rate of the market: `borrows / (cash + borrows - reserves)`
+     * @notice Calculates the utilization rate of the market: `borrows / (cash + borrows - reserves)` 使用率
      * @param cash The amount of cash in the market
      * @param borrows The amount of borrows in the market
      * @param reserves The amount of reserves in the market (currently unused)
@@ -87,7 +87,7 @@ abstract contract BaseJumpRateModelV2 is InterestRateModel {
     }
 
     /**
-     * @notice Calculates the current borrow rate per block, with the error code expected by the market
+     * @notice Calculates the current borrow rate per block, with the error code expected by the market 借贷率
      * @param cash The amount of cash in the market
      * @param borrows The amount of borrows in the market
      * @param reserves The amount of reserves in the market
@@ -106,7 +106,7 @@ abstract contract BaseJumpRateModelV2 is InterestRateModel {
     }
 
     /**
-     * @notice Calculates the current supply rate per block
+     * @notice Calculates the current supply rate per block 供应率
      * @param cash The amount of cash in the market
      * @param borrows The amount of borrows in the market
      * @param reserves The amount of reserves in the market
@@ -121,7 +121,7 @@ abstract contract BaseJumpRateModelV2 is InterestRateModel {
     }
 
     /**
-     * @notice Internal function to update the parameters of the interest rate model
+     * @notice Internal function to update the parameters of the interest rate model 更新利率模型参数
      * @param baseRatePerYear The approximate target base APR, as a mantissa (scaled by BASE)
      * @param multiplierPerYear The rate of increase in interest rate wrt utilization (scaled by BASE)
      * @param jumpMultiplierPerYear The multiplierPerBlock after hitting a specified utilization point

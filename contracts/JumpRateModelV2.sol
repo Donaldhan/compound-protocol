@@ -6,14 +6,14 @@ import "./InterestRateModel.sol";
 
 
 /**
-  * @title Compound's JumpRateModel Contract V2 for V2 cTokens
+  * @title Compound's JumpRateModel Contract V2 for V2 cTokens  JumpRateModel V2版本
   * @author Arr00
   * @notice Supports only for V2 cTokens
   */
 contract JumpRateModelV2 is InterestRateModel, BaseJumpRateModelV2  {
 
 	/**
-     * @notice Calculates the current borrow rate per block
+     * @notice Calculates the current borrow rate per block 获取当前借贷利率
      * @param cash The amount of cash in the market
      * @param borrows The amount of borrows in the market
      * @param reserves The amount of reserves in the market

@@ -8,7 +8,8 @@ abstract contract PriceOracle {
     bool public constant isPriceOracle = true;
 
     /**
-      * @notice Get the underlying price of a cToken asset
+      * 获取底层资产价格 
+      * @notice Get the underlying price of a cToken asset 获取cToken
       * @param cToken The cToken to get the underlying price of
       * @return The underlying asset price mantissa (scaled by 1e18).
       *  Zero means the price is unavailable.

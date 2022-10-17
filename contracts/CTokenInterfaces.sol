@@ -99,7 +99,7 @@ contract CTokenStorage {
      * @member interestIndex Global borrowIndex as of the most recent balance-changing action 全局利率索引
      */
     struct BorrowSnapshot {
-        uint principal;
+        uint principal;//本金
         uint interestIndex;
     }
 

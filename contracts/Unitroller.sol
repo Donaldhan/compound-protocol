@@ -11,22 +11,22 @@ import "./ComptrollerStorage.sol";
 contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
 
     /**
-      * @notice Emitted when pendingComptrollerImplementation is changed
+      * @notice Emitted when pendingComptrollerImplementation is changed 实现正在变更
       */
     event NewPendingImplementation(address oldPendingImplementation, address newPendingImplementation);
 
     /**
-      * @notice Emitted when pendingComptrollerImplementation is accepted, which means comptroller implementation is updated
+      * @notice Emitted when pendingComptrollerImplementation is accepted, which means comptroller implementation is updated 实现变更事件
       */
     event NewImplementation(address oldImplementation, address newImplementation);
 
     /**
-      * @notice Emitted when pendingAdmin is changed
+      * @notice Emitted when pendingAdmin is changed 管理变更事件
       */
     event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
 
     /**
-      * @notice Emitted when pendingAdmin is accepted, which means admin is updated
+      * @notice Emitted when pendingAdmin is accepted, which means admin is updated 新管理事件
       */
     event NewAdmin(address oldAdmin, address newAdmin);
 
@@ -35,7 +35,7 @@ contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
         admin = msg.sender;
     }
 
-    /*** Admin Functions ***/
+    /*** Admin Functions  设置实现 ***/
     function _setPendingImplementation(address newPendingImplementation) public returns (uint) {
 
         if (msg.sender != admin) {
@@ -53,6 +53,7 @@ contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
 
     /**
     * @notice Accepts new implementation of comptroller. msg.sender must be pendingImplementation
+    * 接收实现
     * @dev Admin function for new implementation to accept it's role as implementation
     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
     */
@@ -79,6 +80,7 @@ contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
 
     /**
       * @notice Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
+      * 变更管理员
       * @dev Admin function to begin change of admin. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
       * @param newPendingAdmin New pending admin.
       * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
@@ -103,6 +105,7 @@ contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
 
     /**
       * @notice Accepts transfer of admin rights. msg.sender must be pendingAdmin
+      * 接收管理员
       * @dev Admin function for pending admin to accept role and update admin
       * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
       */
@@ -130,6 +133,7 @@ contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
 
     /**
      * @dev Delegates execution to an implementation contract.
+     * 降级函数，可以接受ETH
      * It returns to the external caller whatever the implementation returns
      * or forwards reverts.
      */
