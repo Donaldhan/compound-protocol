@@ -2,7 +2,9 @@
 pragma solidity ^0.8.10;
 
 import "./SafeMath.sol";
-
+/**
+ * 基于时钟的交易任务调度
+ */
 contract Timelock {
     using SafeMath for uint;
 
@@ -21,7 +23,7 @@ contract Timelock {
     address public pendingAdmin;
     uint public delay;
 
-    mapping (bytes32 => bool) public queuedTransactions;
+    mapping (bytes32 => bool) public queuedTransactions; //交易队列
 
 
     constructor(address admin_, uint delay_) public {
@@ -57,7 +59,9 @@ contract Timelock {
 
         emit NewPendingAdmin(pendingAdmin);
     }
-
+    /**
+     * 加入交易到队列
+     */
     function queueTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public returns (bytes32) {
         require(msg.sender == admin, "Timelock::queueTransaction: Call must come from admin.");
         require(eta >= getBlockTimestamp().add(delay), "Timelock::queueTransaction: Estimated execution block must satisfy delay.");
@@ -68,7 +72,7 @@ contract Timelock {
         emit QueueTransaction(txHash, target, value, signature, data, eta);
         return txHash;
     }
-
+    ///取消交易
     function cancelTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public {
         require(msg.sender == admin, "Timelock::cancelTransaction: Call must come from admin.");
 
@@ -77,8 +81,10 @@ contract Timelock {
 
         emit CancelTransaction(txHash, target, value, signature, data, eta);
     }
-
-    function executeTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public payable returns (bytes memory) {
+    ///执行交易
+    function executeTransaction(address target, uint value, string memory signature, bytes memory data, 
+    uint eta //时钟差
+    ) public payable returns (bytes memory) {
         require(msg.sender == admin, "Timelock::executeTransaction: Call must come from admin.");
 
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
@@ -89,13 +95,13 @@ contract Timelock {
         queuedTransactions[txHash] = false;
 
         bytes memory callData;
-
+        //打包数据
         if (bytes(signature).length == 0) {
             callData = data;
         } else {
             callData = abi.encodePacked(bytes4(keccak256(bytes(signature))), data);
         }
-
+        //调用目标函数 
         // solium-disable-next-line security/no-call-value
         (bool success, bytes memory returnData) = target.call{value: value}(callData);
         require(success, "Timelock::executeTransaction: Transaction execution reverted.");

@@ -129,18 +129,40 @@ Compound将会先使用集中化的管理，控制利率的模型等，在将来
 
 
 
-# 合约
+# 借贷合约
 InterestRateModel（利率模型）：提供借贷率和供应率的计算；具体有WhitePaperInterestRateModel，JumpRateModelV2，DAIInterestRateModelV3利率模型；
 CToken：提供挖取、借贷，偿还，赎回，清算等核心操作， 每个核心操作发生时，都会重新计算利率；计算利率时，并借贷产生的利率会算到新的借贷总额和储备新上；
 清算时，会将借贷的抵押资产，扣押一部分给清算者，一部分作为新的储备金，同时CToken总供应量减少抵押扣留的Token数量。除核心操作之外，提供利率模型的设置，
 管理变更, 控制器设置，储备因子的设置，管理员增加减少现金储备等管理操作；
 
-* CEther：基于ETH的CToken
-* CErc20：基于EIP20的CToken
+* CEther：ETH的CToken
+* CErc20：EIP20的CToken
+
+CErc20Delegator：CErc20代理合约，通过delegateCall，调用底层CErc20合约实现implementation；
 
 PriceOracle（价格预言机）：提供资产价格的查询；
+* SimplePriceOracle
 Comptroller：提供mint，借贷，偿还，清算，扣押相关检查操作及治理代币的Comp分配和claim（转给用户Comp），同时提供用户的市场准入和退出，核心操作的紧急暂停，监管者和管理员可以暂停，恢复只能是管理员；在mint和借贷及偿还操作时会根据当前的供应和借贷飞轮索引，分配相应的COMP。扣押会根据抵押资产的供应索引，给借贷者和清算者分配COMP；
 
+
+
+
+# Comp
+Compound 计划发行 1000 万个 COMP 治理代币，其中 42%（即 423 万个 COMP）分配给 Compound 用户；其余分配给投资人、开发团队和待定用途。
+
+面向用户的 423 万个 COMP 将进行免费分发，只要大家使用 Compound 进行存款或借贷就能获得一定比例的 COMP，存贷金额越大，获得的 COMP 越多。
+
+具体分配规则
+
+423 万个 COMP 被放置在「蓄水池」智能合约中，并且将以每个以太坊区块释放 0.5 个 COMP 的速度发行 （每天约 2880 个 COMP），这也就意味着需要 4 年的时间才会全部分发完；
+COMP 将被分配至 Compound 的每个借贷市场中（ETH、USDC、DAI 等），以各市场的利息确定配比，这也就意味着分配比例会随时变化；
+在每个市场中，50% 的 COMP 会分配给存款人，50% 的 COMP 分配给借款人，用户可以根据自己资产在所在市场内的占比获得相应比例的 COMP
+
+
+## 治理合约
+
+Comp（治理代币）：类ERC20投票代币，并提供授权委托投票操作；
+GovernorBravoDelegate：
 
 
 ## TOOD
@@ -193,4 +215,9 @@ Compound的作用及关键特性、机制：
 [剖析DeFi借贷产品之Compound：Subgraph篇](https://learnblockchain.cn/article/2632)  
 [剖析DeFi借贷产品之Compound：清算篇](https://mirror.xyz/0x546086AfA3D285aCD2c84783c2dCf8F2C23b6433/qdqHZGPih7gXdderdPtZaqloeedTVpgCUdpgUGMGGTk)      
 [剖析DeFi借贷产品之Compound：延伸篇](https://mirror.xyz/0x546086AfA3D285aCD2c84783c2dCf8F2C23b6433/yYi562kzBNUSgcuZKbN0M_hGXtNpb_Su0X6kDuAC8kY)    
-[Compound III 上线，有哪些升级和改动？](https://foresightnews.pro/article/detail/12592)     
+[Compound III 上线，有哪些升级和改动？](https://foresightnews.pro/article/detail/12592)   
+[如何使用Compound领取COMP币？免费领取COMP币](https://www.112btc.com/baike/wakuang/4621.html)     
+[如何免费领取 Compound 治理代币：COMP](https://zhuanlan.zhihu.com/p/148789070)    
+[Expanding Compound Governance](https://medium.com/compound-finance/expanding-compound-governance-ce13fcd4fe36)    
+[]()  
+

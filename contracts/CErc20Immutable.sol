@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import "./CErc20.sol";
 
 /**
- * @title Compound's CErc20Immutable Contract
+ * @title Compound's CErc20Immutable Contract 不可变ERC20合约
  * @notice CTokens which wrap an EIP-20 underlying and are immutable
  * @author Compound
  */

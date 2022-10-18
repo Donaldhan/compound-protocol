@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import "./CTokenInterfaces.sol";
 
 /**
- * @title Compound's CErc20Delegator Contract
+ * @title Compound's CErc20Delegator Contract CErc20代理合约
  * @notice CTokens which wrap an EIP-20 underlying and delegate to an implementation
  * @author Compound
  */
@@ -19,7 +19,7 @@ contract CErc20Delegator is CTokenInterface, CErc20Interface, CDelegatorInterfac
      * @param symbol_ ERC-20 symbol of this token
      * @param decimals_ ERC-20 decimal precision of this token
      * @param admin_ Address of the administrator of this token
-     * @param implementation_ The address of the implementation the contract delegates to
+     * @param implementation_ The address of the implementation the contract delegates to 合约实现代理
      * @param becomeImplementationData The encoded args for becomeImplementation
      */
     constructor(address underlying_,
@@ -46,6 +46,7 @@ contract CErc20Delegator is CTokenInterface, CErc20Interface, CDelegatorInterfac
                                                             decimals_));
 
         // New implementations always get set via the settor (post-initialize)
+        //设置新的实现
         _setImplementation(implementation_, false, becomeImplementationData);
 
         // Set the proper admin now that initialization is done
@@ -67,7 +68,7 @@ contract CErc20Delegator is CTokenInterface, CErc20Interface, CDelegatorInterfac
 
         address oldImplementation = implementation;
         implementation = implementation_;
-
+        //委托调用_becomeImplementation
         delegateToImplementation(abi.encodeWithSignature("_becomeImplementation(bytes)", becomeImplementationData));
 
         emit NewImplementation(oldImplementation, implementation);
@@ -412,7 +413,7 @@ contract CErc20Delegator is CTokenInterface, CErc20Interface, CDelegatorInterfac
     }
 
     /**
-     * @notice Internal method to delegate execution to another contract
+     * @notice Internal method to delegate execution to another contract 代理调用
      * @dev It returns to the external caller whatever the implementation returns or forwards reverts
      * @param callee The contract to delegatecall
      * @param data The raw data to delegatecall
@@ -429,7 +430,7 @@ contract CErc20Delegator is CTokenInterface, CErc20Interface, CDelegatorInterfac
     }
 
     /**
-     * @notice Delegates execution to the implementation contract
+     * @notice Delegates execution to the implementation contract 代理调用
      * @dev It returns to the external caller whatever the implementation returns or forwards reverts
      * @param data The raw data to delegatecall
      * @return The returned bytes from the delegatecall
@@ -456,7 +457,7 @@ contract CErc20Delegator is CTokenInterface, CErc20Interface, CDelegatorInterfac
     }
 
     /**
-     * @notice Delegates execution to an implementation contract
+     * @notice Delegates execution to an implementation contract 代理执行回调
      * @dev It returns to the external caller whatever the implementation returns or forwards reverts
      */
     fallback() external payable {
