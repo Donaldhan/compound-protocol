@@ -127,9 +127,20 @@ Compound将会先使用集中化的管理，控制利率的模型等，在将来
 * 用户可以在依赖于中心化组织的情况，从市场上获取收益；
 * 用户可以使用从Compound中借出来的资产进行使用，售卖或者再借贷。
 
+# 治理
+Compound 计划发行 1000 万个 COMP 治理代币，其中 42%（即 423 万个 COMP）分配给 Compound 用户；其余分配给投资人、开发团队和待定用途。
+面向用户的 423 万个 COMP 将进行免费分发，只要大家使用 Compound 进行存款或借贷就能获得一定比例的 COMP，存贷金额越大，获得的 COMP 越多。
+
+> 具体分配规则:  
+
+423 万个 COMP 被放置在「蓄水池」智能合约中，并且将以每个以太坊区块释放 0.5 个 COMP 的速度发行 （每天约 2880 个 COMP），这也就意味着需要 4 年的时间才会全部分发完；
+COMP 将被分配至 Compound 的每个借贷市场中（ETH、USDC、DAI 等），以各市场的利息确定配比，这也就意味着分配比例会随时变化；
+在每个市场中，50% 的 COMP 会分配给存款人，50% 的 COMP 分配给借款人，用户可以根据自己资产在所在市场内的占比获得相应比例的 COMP
 
 
-# 借贷合约
+
+# 合约
+## 借贷合约
 
 Compound III 最核心的改动在于放弃了其首创的「全池风险模型」（pooled-risk model），改为根据基础资产的不同将各个资产池隔离开来。这里的「基础资产」是一个相对于「抵押资产」的概念，与旧版本（Compound v2）不同，Compound III 在新的协议中对这两个概念做了很清楚的划分。
 
@@ -140,33 +151,18 @@ Compound III 最核心的改动在于放弃了其首创的「全池风险模型�
 
 
 
-InterestRateModel（利率模型）：提供借贷率和供应率的计算；具体有WhitePaperInterestRateModel，JumpRateModelV2，DAIInterestRateModelV3利率模型；
-CToken：提供挖取、借贷，偿还，赎回，清算等核心操作， 每个核心操作发生时，都会重新计算利率；计算利率时，并借贷产生的利率会算到新的借贷总额和储备新上；
+* InterestRateModel（利率模型）：提供借贷率和供应率的计算；具体有WhitePaperInterestRateModel，JumpRateModelV2，DAIInterestRateModelV3利率模型；
+* CToken：提供挖取、借贷，偿还，赎回，清算等核心操作， 每个核心操作发生时，都会重新计算利率；计算利率时，并借贷产生的利率会算到新的借贷总额和储备新上；
 清算时，会将借贷的抵押资产，扣押一部分给清算者，一部分作为新的储备金，同时CToken总供应量减少抵押扣留的Token数量。除核心操作之外，提供利率模型的设置，
 管理变更, 控制器设置，储备因子的设置，管理员增加减少现金储备等管理操作；
 
-* CEther：ETH的CToken
-* CErc20：EIP20的CToken
+1. CEther：ETH的CToken
+2. CErc20：EIP20的CToken
 
-CErc20Delegator：CErc20代理合约，通过delegateCall，调用底层CErc20合约实现implementation；
+* CErc20Delegator：CErc20代理合约，通过delegateCall，调用底层CErc20合约实现implementation；
+* PriceOracle（价格预言机）：提供资产价格的查询；SimplePriceOracle,UniswapAnchoredView;
+* Comptroller：提供mint，借贷，偿还，清算，扣押相关检查操作及治理代币的Comp分配和claim（转给用户Comp），同时提供用户的市场准入和退出，核心操作的紧急暂停，监管者和管理员可以暂停，恢复只能是管理员；在mint和借贷及偿还操作时会根据当前的供应和借贷飞轮索引，分配相应的COMP。扣押会根据抵押资产的供应索引，给借贷者和清算者分配COMP；
 
-PriceOracle（价格预言机）：提供资产价格的查询；
-* SimplePriceOracle
-Comptroller：提供mint，借贷，偿还，清算，扣押相关检查操作及治理代币的Comp分配和claim（转给用户Comp），同时提供用户的市场准入和退出，核心操作的紧急暂停，监管者和管理员可以暂停，恢复只能是管理员；在mint和借贷及偿还操作时会根据当前的供应和借贷飞轮索引，分配相应的COMP。扣押会根据抵押资产的供应索引，给借贷者和清算者分配COMP；
-
-
-
-
-# Comp
-Compound 计划发行 1000 万个 COMP 治理代币，其中 42%（即 423 万个 COMP）分配给 Compound 用户；其余分配给投资人、开发团队和待定用途。
-
-面向用户的 423 万个 COMP 将进行免费分发，只要大家使用 Compound 进行存款或借贷就能获得一定比例的 COMP，存贷金额越大，获得的 COMP 越多。
-
-具体分配规则
-
-423 万个 COMP 被放置在「蓄水池」智能合约中，并且将以每个以太坊区块释放 0.5 个 COMP 的速度发行 （每天约 2880 个 COMP），这也就意味着需要 4 年的时间才会全部分发完；
-COMP 将被分配至 Compound 的每个借贷市场中（ETH、USDC、DAI 等），以各市场的利息确定配比，这也就意味着分配比例会随时变化；
-在每个市场中，50% 的 COMP 会分配给存款人，50% 的 COMP 分配给借款人，用户可以根据自己资产在所在市场内的占比获得相应比例的 COMP
 
 
 ## 治理合约
@@ -174,15 +170,33 @@ COMP 将被分配至 Compound 的每个借贷市场中（ETH、USDC、DAI 等）
 Compound有2个版本的治理合约，分别是Alpha和Bravo。治理合约和时间锁timelock配合使用，以提升治理的安全性。治理代币是Comp，用户持有Comp代币即拥有投票权，也可以将投票权委托给别人。
 
 
+* Comp（治理代币）：类ERC20投票代币，并提供授权委托投票操作；
+* GovernorBravoDelegate：提供发起提案，投票等提案治理核心操作，提案成功后将会，添加到Timelock的提案队列中，在eta时间到达时，并且未到eta+14d时，才可以执行提案，
+* Timelock:治理提案时间锁，管理投票成功的提案，提供添加提案到队列，取消，执行提案核心操作；
 
-Comp（治理代币）：类ERC20投票代币，并提供授权委托投票操作；
-GovernorBravoDelegate：
-Timelock:治理提案时钟锁，管理投票成功的提案，提供添加提案到队列，取消，执行提案核心操作；
+## open-oracle
+在open-oracle仓库，提供了基于UniswapV2的价格预言机：
+
+* OpenOraclePriceData：维护各种代币价格；
+* UniswapAnchoredView：提供基于UniswapV2的价格抓取等操作；
 
 
-## TOOD
-1. 协议 https://github.com/compound-finance/compound-protocol/blob/master/docs/CompoundProtocol.pdf
-2. 合约
+
+
+
+挖取：用户供应底层资产，获取CToken，增加供应量，转给底层资产给CToken合约，获取供应相应的COMP；
+借贷：使用用户抵押资产，获取资产资产贷款，从CToken合约转给借贷者，获取借贷相应的COMP；
+赎回：使用CToken赎回对应的底层资产，减少CToken供应量，转换底层资产给赎回者；
+偿还：从偿还者，转账底层资产到CToken合约，获取借贷相应的COMP；
+清算：首先给借贷者偿还贷款，从清算者，转账底层资产到CToken合约，转移借贷者相应的CToken给用户，并扣押借贷一部分的底层资产作为储备金，清算者获取相应供应COMP；
+
+
+
+底层资产：现金池，借贷池，储备池；
+CToken：借贷市场
+COMP：治理
+
+
 
 
 # 总结
@@ -208,7 +222,14 @@ Compound的作用及关键特性、机制：
 * 用户可以在依赖于中心化组织的情况，从市场上获取收益；
 * 用户可以使用从Compound中借出来的资产进行使用，售卖或者再借贷。
 
+Compound III 最核心的改动在于放弃了其首创的「全池风险模型」（pooled-risk model），改为根据基础资产的不同将各个资产池隔离开来。这里的「基础资产」是一个相对于「抵押资产」的概念，与旧版本（Compound v2）不同，Compound III 在新的协议中对这两个概念做了很清楚的划分。
 
+具体来说，在 Compound v2 之中，由于协议允许用户自由存入（抵押）或借出所有已支持的资产，因此这些资产既可被视为「基础资产」，也可以被视为「抵押资产」。如下图所示，以太坊主网上的 Compound v2 现已支持 ETH、COMP、USDC、USDT 、DAI 等 17 种资产，用户可以在这 17 种资产内自由选择存入（抵押）某种代币，再自由借出另一种代币，具体借出哪种代币不受限制，甚至还可以将借出的代币再抵押一遍去借出其他代币……总而言之，这些不同的资产池在借贷规则内是打通的。
+
+
+整体来看，Compound III 几乎是对整个协议的运转机制做了一次再设计。Leshner 称新版本更强调安全性、资本效率和用户体验。前两点其实非常清晰，Compound III 的资产池隔离模型有效阻隔了系统性风险的蔓延，同时独立设置各池参数的新机制也赋予了协议更灵活、更高效的资产利用可能性，至于用户体验这一点，操作层面 Compound III 其实并没有太大改变，熟悉 DeFi 借贷的用户基本看一眼就能上手。
+
+Compound有2个版本的治理合约，分别是Alpha和Bravo。治理合约和时间锁timelock配合使用，以提升治理的安全性。治理代币是Comp，用户持有Comp代币即拥有投票权，也可以将投票权委托给别人。
 
 
 

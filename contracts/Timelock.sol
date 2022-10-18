@@ -4,6 +4,13 @@ pragma solidity ^0.8.10;
 import "./SafeMath.sol";
 /**
  * 基于时钟的交易任务调度
+
+ https://blog.openzeppelin.com/protect-your-users-with-smart-contract-timelocks/
+实施时间锁有很多充分的理由：
+
+1. 项目方放弃控制权为社区提供更多保障；
+2. 时间锁允许投资者在必要时及时退出协议；
+3. 项目管理员需要对利益相关者/投资者保持透明；
  */
 contract Timelock {
     using SafeMath for uint;
