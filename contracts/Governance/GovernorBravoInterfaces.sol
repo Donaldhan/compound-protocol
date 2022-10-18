@@ -3,10 +3,10 @@ pragma solidity ^0.8.10;
 
 
 contract GovernorBravoEvents {
-    /// @notice An event emitted when a new proposal is created
+    /// @notice An event emitted when a new proposal is created 提议创建
     event ProposalCreated(uint id, address proposer, address[] targets, uint[] values, string[] signatures, bytes[] calldatas, uint startBlock, uint endBlock, string description);
 
-    /// @notice An event emitted when a vote has been cast on a proposal
+    /// @notice An event emitted when a vote has been cast on a proposal 投票事件
     /// @param voter The address which casted a vote
     /// @param proposalId The proposal id which was voted on
     /// @param support Support value for the vote. 0=against, 1=for, 2=abstain
@@ -14,7 +14,7 @@ contract GovernorBravoEvents {
     /// @param reason The reason given for the vote by the voter
     event VoteCast(address indexed voter, uint proposalId, uint8 support, uint votes, string reason);
 
-    /// @notice An event emitted when a proposal has been canceled
+    /// @notice An event emitted when a proposal has been canceled 取消提案
     event ProposalCanceled(uint id);
 
     /// @notice An event emitted when a proposal has been queued in the Timelock
@@ -68,94 +68,95 @@ contract GovernorBravoDelegatorStorage {
  */
 contract GovernorBravoDelegateStorageV1 is GovernorBravoDelegatorStorage {
 
-    /// @notice The delay before voting on a proposal may take place, once proposed, in blocks
+    /// @notice The delay before voting on a proposal may take place, once proposed, in blocks 投票延迟
     uint public votingDelay;
 
-    /// @notice The duration of voting on a proposal, in blocks
+    /// @notice The duration of voting on a proposal, in blocks 投票间隔
     uint public votingPeriod;
 
-    /// @notice The number of votes required in order for a voter to become a proposer
+    /// @notice The number of votes required in order for a voter to become a proposer 提案者阈值
     uint public proposalThreshold;
 
-    /// @notice Initial proposal id set at become
+    /// @notice Initial proposal id set at become 
     uint public initialProposalId;
 
-    /// @notice The total number of proposals
+    /// @notice The total number of proposals 提案数量
     uint public proposalCount;
 
-    /// @notice The address of the Compound Protocol Timelock
+    /// @notice The address of the Compound Protocol Timelock 时间锁服务
     TimelockInterface public timelock;
 
-    /// @notice The address of the Compound governance token
+    /// @notice The address of the Compound governance token 治理token
     CompInterface public comp;
 
-    /// @notice The official record of all proposals ever proposed
+    /// @notice The official record of all proposals ever proposed 提案信息
     mapping (uint => Proposal) public proposals;
 
-    /// @notice The latest proposal for each proposer
+    /// @notice The latest proposal for each proposer 提案者的最后一个提案
     mapping (address => uint) public latestProposalIds;
 
-
+    //提案状态
     struct Proposal {
         /// @notice Unique id for looking up a proposal
         uint id;
 
-        /// @notice Creator of the proposal
+        /// @notice Creator of the proposal 提案者
         address proposer;
 
-        /// @notice The timestamp that the proposal will be available for execution, set once the vote succeeds
+        /// @notice The timestamp that the proposal will be available for execution, set once the vote succeeds 
+        ///投成功后，需要在到达eta，才能执行，另外不能超过到达到达eta后的GRACE_PERIOD时间，默认14天
         uint eta;
 
-        /// @notice the ordered list of target addresses for calls to be made
+        /// @notice the ordered list of target addresses for calls to be made 目标地址
         address[] targets;
 
-        /// @notice The ordered list of values (i.e. msg.value) to be passed to the calls to be made
+        /// @notice The ordered list of values (i.e. msg.value) to be passed to the calls to be made 发送的eth
         uint[] values;
 
-        /// @notice The ordered list of function signatures to be called
+        /// @notice The ordered list of function signatures to be called 方法签名
         string[] signatures;
 
-        /// @notice The ordered list of calldata to be passed to each call
+        /// @notice The ordered list of calldata to be passed to each call 调用数据
         bytes[] calldatas;
 
-        /// @notice The block at which voting begins: holders must delegate their votes prior to this block
+        /// @notice The block at which voting begins: holders must delegate their votes prior to this block 投票开始区块
         uint startBlock;
 
-        /// @notice The block at which voting ends: votes must be cast prior to this block
+        /// @notice The block at which voting ends: votes must be cast prior to this block 投票截止区块
         uint endBlock;
 
-        /// @notice Current number of votes in favor of this proposal
+        /// @notice Current number of votes in favor of this proposal 赞成票数
         uint forVotes;
 
-        /// @notice Current number of votes in opposition to this proposal
+        /// @notice Current number of votes in opposition to this proposal 反对票数
         uint againstVotes;
 
-        /// @notice Current number of votes for abstaining for this proposal
+        /// @notice Current number of votes for abstaining for this proposal 弃权票数
         uint abstainVotes;
 
-        /// @notice Flag marking whether the proposal has been canceled
+        /// @notice Flag marking whether the proposal has been canceled 是否取消
         bool canceled;
 
-        /// @notice Flag marking whether the proposal has been executed
+        /// @notice Flag marking whether the proposal has been executed 是否执行
         bool executed;
 
-        /// @notice Receipts of ballots for the entire set of voters
+        /// @notice Receipts of ballots for the entire set of voters 用户的投票信息
         mapping (address => Receipt) receipts;
     }
 
     /// @notice Ballot receipt record for a voter
     struct Receipt {
-        /// @notice Whether or not a vote has been cast
+        /// @notice Whether or not a vote has been cast 是否投票
         bool hasVoted;
 
-        /// @notice Whether or not the voter supports the proposal or abstains
+        /// @notice Whether or not the voter supports the proposal or abstains 投票（赞成、反对，弃权）
         uint8 support;
 
-        /// @notice The number of votes the voter had, which were cast
+        /// @notice The number of votes the voter had, which were cast 票数
         uint96 votes;
     }
 
-    /// @notice Possible states that a proposal may be in
+    /// @notice Possible states that a proposal may be in 提案状态
     enum ProposalState {
         Pending,
         Active,
@@ -169,13 +170,13 @@ contract GovernorBravoDelegateStorageV1 is GovernorBravoDelegatorStorage {
 }
 
 contract GovernorBravoDelegateStorageV2 is GovernorBravoDelegateStorageV1 {
-    /// @notice Stores the expiration of account whitelist status as a timestamp
+    /// @notice Stores the expiration of account whitelist status as a timestamp 账户白名单状态
     mapping (address => uint) public whitelistAccountExpirations;
 
-    /// @notice Address which manages whitelisted proposals and whitelist accounts
+    /// @notice Address which manages whitelisted proposals and whitelist accounts 账户白名单合约地址
     address public whitelistGuardian;
 }
-
+/// 时钟锁接
 interface TimelockInterface {
     function delay() external view returns (uint);
     function GRACE_PERIOD() external view returns (uint);
@@ -187,10 +188,11 @@ interface TimelockInterface {
 }
 
 interface CompInterface {
+    //获取用户在给定区块下的投票权重
     function getPriorVotes(address account, uint blockNumber) external view returns (uint96);
 }
 
 interface GovernorAlpha {
-    /// @notice The total number of proposals
+    /// @notice The total number of proposals 总提案数量
     function proposalCount() external returns (uint);
 }

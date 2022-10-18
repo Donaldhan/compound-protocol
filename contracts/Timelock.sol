@@ -19,9 +19,9 @@ contract Timelock {
     uint public constant MINIMUM_DELAY = 2 days;
     uint public constant MAXIMUM_DELAY = 30 days;
 
-    address public admin;
+    address public admin; //管理员
     address public pendingAdmin;
-    uint public delay;
+    uint public delay;//延时
 
     mapping (bytes32 => bool) public queuedTransactions; //交易队列
 
@@ -63,6 +63,7 @@ contract Timelock {
      * 加入交易到队列
      */
     function queueTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public returns (bytes32) {
+        //管理员权限
         require(msg.sender == admin, "Timelock::queueTransaction: Call must come from admin.");
         require(eta >= getBlockTimestamp().add(delay), "Timelock::queueTransaction: Estimated execution block must satisfy delay.");
 
@@ -74,6 +75,7 @@ contract Timelock {
     }
     ///取消交易
     function cancelTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public {
+         //管理员权限
         require(msg.sender == admin, "Timelock::cancelTransaction: Call must come from admin.");
 
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
@@ -85,12 +87,13 @@ contract Timelock {
     function executeTransaction(address target, uint value, string memory signature, bytes memory data, 
     uint eta //时钟差
     ) public payable returns (bytes memory) {
+         //管理员权限
         require(msg.sender == admin, "Timelock::executeTransaction: Call must come from admin.");
 
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         require(queuedTransactions[txHash], "Timelock::executeTransaction: Transaction hasn't been queued.");
-        require(getBlockTimestamp() >= eta, "Timelock::executeTransaction: Transaction hasn't surpassed time lock.");
-        require(getBlockTimestamp() <= eta.add(GRACE_PERIOD), "Timelock::executeTransaction: Transaction is stale.");
+        require(getBlockTimestamp() >= eta, "Timelock::executeTransaction: Transaction hasn't surpassed time lock."); //确保时间eta足够
+        require(getBlockTimestamp() <= eta.add(GRACE_PERIOD), "Timelock::executeTransaction: Transaction is stale."); //过期
 
         queuedTransactions[txHash] = false;
 

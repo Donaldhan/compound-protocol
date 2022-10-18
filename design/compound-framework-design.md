@@ -130,6 +130,16 @@ Compound将会先使用集中化的管理，控制利率的模型等，在将来
 
 
 # 借贷合约
+
+Compound III 最核心的改动在于放弃了其首创的「全池风险模型」（pooled-risk model），改为根据基础资产的不同将各个资产池隔离开来。这里的「基础资产」是一个相对于「抵押资产」的概念，与旧版本（Compound v2）不同，Compound III 在新的协议中对这两个概念做了很清楚的划分。
+
+具体来说，在 Compound v2 之中，由于协议允许用户自由存入（抵押）或借出所有已支持的资产，因此这些资产既可被视为「基础资产」，也可以被视为「抵押资产」。如下图所示，以太坊主网上的 Compound v2 现已支持 ETH、COMP、USDC、USDT 、DAI 等 17 种资产，用户可以在这 17 种资产内自由选择存入（抵押）某种代币，再自由借出另一种代币，具体借出哪种代币不受限制，甚至还可以将借出的代币再抵押一遍去借出其他代币……总而言之，这些不同的资产池在借贷规则内是打通的。
+
+
+整体来看，Compound III 几乎是对整个协议的运转机制做了一次再设计。Leshner 称新版本更强调安全性、资本效率和用户体验。前两点其实非常清晰，Compound III 的资产池隔离模型有效阻隔了系统性风险的蔓延，同时独立设置各池参数的新机制也赋予了协议更灵活、更高效的资产利用可能性，至于用户体验这一点，操作层面 Compound III 其实并没有太大改变，熟悉 DeFi 借贷的用户基本看一眼就能上手。
+
+
+
 InterestRateModel（利率模型）：提供借贷率和供应率的计算；具体有WhitePaperInterestRateModel，JumpRateModelV2，DAIInterestRateModelV3利率模型；
 CToken：提供挖取、借贷，偿还，赎回，清算等核心操作， 每个核心操作发生时，都会重新计算利率；计算利率时，并借贷产生的利率会算到新的借贷总额和储备新上；
 清算时，会将借贷的抵押资产，扣押一部分给清算者，一部分作为新的储备金，同时CToken总供应量减少抵押扣留的Token数量。除核心操作之外，提供利率模型的设置，
@@ -161,8 +171,13 @@ COMP 将被分配至 Compound 的每个借贷市场中（ETH、USDC、DAI 等）
 
 ## 治理合约
 
+Compound有2个版本的治理合约，分别是Alpha和Bravo。治理合约和时间锁timelock配合使用，以提升治理的安全性。治理代币是Comp，用户持有Comp代币即拥有投票权，也可以将投票权委托给别人。
+
+
+
 Comp（治理代币）：类ERC20投票代币，并提供授权委托投票操作；
 GovernorBravoDelegate：
+Timelock:治理提案时钟锁，管理投票成功的提案，提供添加提案到队列，取消，执行提案核心操作；
 
 
 ## TOOD
@@ -219,5 +234,6 @@ Compound的作用及关键特性、机制：
 [如何使用Compound领取COMP币？免费领取COMP币](https://www.112btc.com/baike/wakuang/4621.html)     
 [如何免费领取 Compound 治理代币：COMP](https://zhuanlan.zhihu.com/p/148789070)    
 [Expanding Compound Governance](https://medium.com/compound-finance/expanding-compound-governance-ce13fcd4fe36)    
-[]()  
+[Compound学习——DAO治理](https://mirror.xyz/rbtree.eth/OQEHK-Zrmz2RZZ47KE--UjyjLVetE4yNzH1jQ6KWvKM)     
+[Compound governance](https://docs.compound.finance/v2/governance/)  
 

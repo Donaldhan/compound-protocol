@@ -8,43 +8,44 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     /// @notice The name of this contract
     string public constant name = "Compound Governor Bravo";
 
-    /// @notice The minimum setable proposal threshold
+    /// @notice The minimum setable proposal threshold 最小填阈值
     uint public constant MIN_PROPOSAL_THRESHOLD = 1000e18; // 1,000 Comp
 
-    /// @notice The maximum setable proposal threshold
+    /// @notice The maximum setable proposal threshold 最大填阈值
     uint public constant MAX_PROPOSAL_THRESHOLD = 100000e18; //100,000 Comp
 
-    /// @notice The minimum setable voting period
+    /// @notice The minimum setable voting period  最小投票间隔
     uint public constant MIN_VOTING_PERIOD = 5760; // About 24 hours
 
-    /// @notice The max setable voting period
+    /// @notice The max setable voting period 最大投票间隔
     uint public constant MAX_VOTING_PERIOD = 80640; // About 2 weeks
 
-    /// @notice The min setable voting delay
+    /// @notice The min setable voting delay 最小投票延迟
     uint public constant MIN_VOTING_DELAY = 1;
 
-    /// @notice The max setable voting delay
+    /// @notice The max setable voting delay 最大投票延迟
     uint public constant MAX_VOTING_DELAY = 40320; // About 1 week
 
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
+    /// 投票成功的法定人数赞比
     uint public constant quorumVotes = 400000e18; // 400,000 = 4% of Comp
 
-    /// @notice The maximum number of actions that can be included in a proposal
+    /// @notice The maximum number of actions that can be included in a proposal 每个提议中可以包含的最大action
     uint public constant proposalMaxOperations = 10; // 10 actions
 
     /// @notice The EIP-712 typehash for the contract's domain
     bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
 
-    /// @notice The EIP-712 typehash for the ballot struct used by the contract
+    /// @notice The EIP-712 typehash for the ballot struct used by the contract   投票类型hash
     bytes32 public constant BALLOT_TYPEHASH = keccak256("Ballot(uint256 proposalId,uint8 support)");
 
     /**
       * @notice Used to initialize the contract during delegator constructor
-      * @param timelock_ The address of the Timelock
-      * @param comp_ The address of the COMP token
-      * @param votingPeriod_ The initial voting period
-      * @param votingDelay_ The initial voting delay
-      * @param proposalThreshold_ The initial proposal threshold
+      * @param timelock_ The address of the Timelock 时钟锁
+      * @param comp_ The address of the COMP token comp地址
+      * @param votingPeriod_ The initial voting period 投票间隔
+      * @param votingDelay_ The initial voting delay 投票延迟
+      * @param proposalThreshold_ The initial proposal threshold 发起提案阈值
       */
     function initialize(address timelock_, address comp_, uint votingPeriod_, uint votingDelay_, uint proposalThreshold_) virtual public {
         require(address(timelock) == address(0), "GovernorBravo::initialize: can only initialize once");
@@ -63,7 +64,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Function used to propose a new proposal. Sender must have delegates above the proposal threshold
+      * @notice Function used to propose a new proposal. Sender must have delegates above the proposal threshold 发起提案
       * @param targets Target addresses for proposal calls
       * @param values Eth values for proposal calls
       * @param signatures Function signatures for proposal calls
@@ -75,18 +76,19 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
         // Reject proposals before initiating as Governor
         require(initialProposalId != 0, "GovernorBravo::propose: Governor Bravo not active");
         // Allow addresses above proposal threshold and whitelisted addresses to propose
+        //确保为白名单，可以拥有提案权限，及提案参数的有效性
         require(comp.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalThreshold || isWhitelisted(msg.sender), "GovernorBravo::propose: proposer votes below proposal threshold");
         require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "GovernorBravo::propose: proposal function information arity mismatch");
         require(targets.length != 0, "GovernorBravo::propose: must provide actions");
         require(targets.length <= proposalMaxOperations, "GovernorBravo::propose: too many actions");
 
         uint latestProposalId = latestProposalIds[msg.sender];
-        if (latestProposalId != 0) {
+        if (latestProposalId != 0) {//确保没有正在进行的提案
           ProposalState proposersLatestProposalState = state(latestProposalId);
           require(proposersLatestProposalState != ProposalState.Active, "GovernorBravo::propose: one live proposal per proposer, found an already active proposal");
           require(proposersLatestProposalState != ProposalState.Pending, "GovernorBravo::propose: one live proposal per proposer, found an already pending proposal");
         }
-
+        //提案开始结束块高 
         uint startBlock = add256(block.number, votingDelay);
         uint endBlock = add256(startBlock, votingPeriod);
 
@@ -117,30 +119,33 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Queues a proposal of state succeeded
+      * @notice Queues a proposal of state succeeded 提案成功后，添加提案到队列
       * @param proposalId The id of the proposal to queue
       */
     function queue(uint proposalId) external {
         require(state(proposalId) == ProposalState.Succeeded, "GovernorBravo::queue: proposal can only be queued if it is succeeded");
         Proposal storage proposal = proposals[proposalId];
+        //延迟提案执行事件
         uint eta = add256(block.timestamp, timelock.delay());
         for (uint i = 0; i < proposal.targets.length; i++) {
+            //添加提案到timeLock队列
             queueOrRevertInternal(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
         }
         proposal.eta = eta;
         emit ProposalQueued(proposalId, eta);
     }
-
+    ///添加提案到timeLock队列
     function queueOrRevertInternal(address target, uint value, string memory signature, bytes memory data, uint eta) internal {
         require(!timelock.queuedTransactions(keccak256(abi.encode(target, value, signature, data, eta))), "GovernorBravo::queueOrRevertInternal: identical proposal action already queued at eta");
         timelock.queueTransaction(target, value, signature, data, eta);
     }
 
     /**
-      * @notice Executes a queued proposal if eta has passed
+      * @notice Executes a queued proposal if eta has passed 执行提案
       * @param proposalId The id of the proposal to execute
       */
     function execute(uint proposalId) external payable {
+        //确保状态为队列中
         require(state(proposalId) == ProposalState.Queued, "GovernorBravo::execute: proposal can only be executed if it is queued");
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
@@ -151,15 +156,16 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Cancels a proposal only if sender is the proposer, or proposer delegates dropped below proposal threshold
+      * @notice Cancels a proposal only if sender is the proposer, or proposer delegates dropped below proposal threshold 取消提案
       * @param proposalId The id of the proposal to cancel
       */
     function cancel(uint proposalId) external {
+        //确保提案不在执行状态
         require(state(proposalId) != ProposalState.Executed, "GovernorBravo::cancel: cannot cancel executed proposal");
 
         Proposal storage proposal = proposals[proposalId];
 
-        // Proposer can cancel
+        // Proposer can cancel 确保提案者权限
         if(msg.sender != proposal.proposer) {
             // Whitelisted proposers can't be canceled for falling below proposal threshold
             if(isWhitelisted(proposal.proposer)) {
@@ -179,7 +185,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Gets actions of a proposal
+      * @notice Gets actions of a proposal 获取提案操作
       * @param proposalId the id of the proposal
       * @return targets of the proposal actions
       * @return values of the proposal actions
@@ -192,8 +198,8 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Gets the receipt for a voter on a given proposal
-      * @param proposalId the id of proposal
+      * @notice Gets the receipt for a voter on a given proposal 获取用户提案投票详情
+      * @param proposalId the id of proposal 
       * @param voter The address of the voter
       * @return The voting receipt
       */
@@ -202,7 +208,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Gets the state of a proposal
+      * @notice Gets the state of a proposal 提案状态
       * @param proposalId The id of the proposal
       * @return Proposal state
       */
@@ -229,7 +235,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Cast a vote for a proposal
+      * @notice Cast a vote for a proposal 投票
       * @param proposalId The id of the proposal to vote on
       * @param support The support value for the vote. 0=against, 1=for, 2=abstain
       */
@@ -238,7 +244,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Cast a vote for a proposal with a reason
+      * @notice Cast a vote for a proposal with a reason 带原因的投票
       * @param proposalId The id of the proposal to vote on
       * @param support The support value for the vote. 0=against, 1=for, 2=abstain
       * @param reason The reason given for the vote by the voter
@@ -248,7 +254,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Cast a vote for a proposal by signature
+      * @notice Cast a vote for a proposal by signature 基于Eip712的签名投票
       * @dev External function that accepts EIP-712 signatures for voting on proposals.
       */
     function castVoteBySig(uint proposalId, uint8 support, uint8 v, bytes32 r, bytes32 s) external {
@@ -261,18 +267,20 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Internal function that caries out voting logic
+      * @notice Internal function that caries out voting logic 内部投票逻辑
       * @param voter The voter that is casting their vote
       * @param proposalId The id of the proposal to vote on
       * @param support The support value for the vote. 0=against, 1=for, 2=abstain
       * @return The number of votes cast
       */
     function castVoteInternal(address voter, uint proposalId, uint8 support) internal returns (uint96) {
+        //确保提案进行中，及投票操作有效，及没有投过票
         require(state(proposalId) == ProposalState.Active, "GovernorBravo::castVoteInternal: voting is closed");
         require(support <= 2, "GovernorBravo::castVoteInternal: invalid vote type");
         Proposal storage proposal = proposals[proposalId];
         Receipt storage receipt = proposal.receipts[voter];
         require(receipt.hasVoted == false, "GovernorBravo::castVoteInternal: voter already voted");
+        //获取票额
         uint96 votes = comp.getPriorVotes(voter, proposal.startBlock);
 
         if (support == 0) {
@@ -282,7 +290,6 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
         } else if (support == 2) {
             proposal.abstainVotes = add256(proposal.abstainVotes, votes);
         }
-
         receipt.hasVoted = true;
         receipt.support = support;
         receipt.votes = votes;
@@ -291,7 +298,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-     * @notice View function which returns if an account is whitelisted
+     * @notice View function which returns if an account is whitelisted 是否为白名单
      * @param account Account to check white list status of
      * @return If the account is whitelisted
      */
@@ -300,7 +307,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Admin function for setting the voting delay
+      * @notice Admin function for setting the voting delay 设置延迟
       * @param newVotingDelay new voting delay, in blocks
       */
     function _setVotingDelay(uint newVotingDelay) external {
@@ -313,7 +320,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Admin function for setting the voting period
+      * @notice Admin function for setting the voting period 设置投票间隔
       * @param newVotingPeriod new voting period, in blocks
       */
     function _setVotingPeriod(uint newVotingPeriod) external {
@@ -326,7 +333,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Admin function for setting the proposal threshold
+      * @notice Admin function for setting the proposal threshold 设置提案者阈值
       * @dev newProposalThreshold must be greater than the hardcoded min
       * @param newProposalThreshold new proposal threshold
       */
@@ -341,7 +348,8 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
 
     /**
      * @notice Admin function for setting the whitelist expiration as a timestamp for an account. Whitelist status allows accounts to propose without meeting threshold
-     * @param account Account address to set whitelist expiration for
+     * 设置白名单过期时间
+     * @param account Account address to set whitelist expiration for 
      * @param expiration Expiration for account whitelist status as timestamp (if now < expiration, whitelisted)
      */
     function _setWhitelistAccountExpiration(address account, uint expiration) external {
@@ -353,6 +361,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
 
     /**
      * @notice Admin function for setting the whitelistGuardian. WhitelistGuardian can cancel proposals from whitelisted addresses
+     * 设置白名单监护者地址
      * @param account Account to set whitelistGuardian to (0x0 to remove whitelistGuardian)
      */
      function _setWhitelistGuardian(address account) external {
@@ -364,7 +373,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
      }
 
     /**
-      * @notice Initiate the GovernorBravo contract
+      * @notice Initiate the GovernorBravo contract 初始化治理合约
       * @dev Admin only. Sets initial proposal id which initiates the contract, ensuring a continuous proposal id count
       * @param governorAlpha The address for the Governor to continue the proposal id count from
       */
@@ -377,7 +386,8 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
+      * @notice Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer. 
+      * 更新管理员
       * @dev Admin function to begin change of admin. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
       * @param newPendingAdmin New pending admin.
       */
@@ -397,6 +407,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
 
     /**
       * @notice Accepts transfer of admin rights. msg.sender must be pendingAdmin
+      * 变更管理员
       * @dev Admin function for pending admin to accept role and update admin
       */
     function _acceptAdmin() external {
